@@ -9,11 +9,8 @@ import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.spec.IvParameterSpec;
 import javax.xml.bind.DatatypeConverter;
-
-import com.github.y43zu.util.BASE64Util;
 
 public class AESUtil {
 	private static final String ALGORITHM = "AES";
@@ -47,14 +44,20 @@ public class AESUtil {
 		return doAES(Cipher.DECRYPT_MODE, cryptedString, keyStoreName, alias);
 	}
 
+	/**
+	 * 暗号化復号化の本処理。cyphermodeで暗号化か復号化か処理を分ける。
+	 * @param cyphermode
+	 * @param src
+	 * @param keyStoreName
+	 * @param alias
+	 * @return
+	 */
 	private static String doAES(int cyphermode, String src, String keyStoreName, String alias) {
 		String dest = "";
 
 		KeyStore keyStroe = loadKeystore(keyStoreName);
 
 		try {
-//			KeyGenerator aes = KeyGenerator.getInstance(ALGORITHM);
-//			aes.init(KEY_SIZE, new SecureRandom());
 			Key key = keyStroe.getKey(alias, KEYSTORE_PASS.toCharArray());
 
 			Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
@@ -63,16 +66,18 @@ public class AESUtil {
 
 			cipher.init(cyphermode, key, ivParam);
 
-			if (cyphermode == Cipher.ENCRYPT_MODE) {
+			if (cyphermode == Cipher.ENCRYPT_MODE) { //暗号化
 				byte[] result = cipher.doFinal(src.getBytes());
 				System.out.println("暗号化後:" + Arrays.toString(result));
 				dest = Base64.getEncoder().encodeToString(result);
 				System.out.println("暗号化BASE64後:" + Arrays.toString(dest.getBytes()));
-			} else if (cyphermode == Cipher.DECRYPT_MODE) {
+				
+			} else if (cyphermode == Cipher.DECRYPT_MODE) { //復号化
 				byte[] result = Base64.getDecoder().decode(src.getBytes());
 				System.out.println("暗号化BASE64解除前:" + Arrays.toString(src.getBytes()));
 				dest = new String(cipher.doFinal(result));
 				System.out.println("暗号化BASE64解除後:" + Arrays.toString(result));
+				
 			} else {
 				throw new IllegalArgumentException();
 			}
@@ -119,14 +124,20 @@ public class AESUtil {
 		return doAES4JDK6(Cipher.DECRYPT_MODE, prainText, keyStoreName, alias);
 	}
 
+	/**
+	 * JDK6で作った鍵を使って暗号化復号化ができるか試すメソッド。JDK8版との違いはキーストアをJCEKSで読み込むだけ。
+	 * @param cyphermode
+	 * @param src
+	 * @param keyStoreName
+	 * @param alias
+	 * @return
+	 */
 	private static String doAES4JDK6(int cyphermode, String src, String keyStoreName, String alias) {
 		String dest = "";
 
 		KeyStore keyStroe = loadKeystore4JDK6(keyStoreName);
 
 		try {
-//			KeyGenerator aes = KeyGenerator.getInstance(ALGORITHM);
-//			aes.init(KEY_SIZE, new SecureRandom());
 			Key key = keyStroe.getKey(alias, KEYSTORE_PASS.toCharArray());
 
 			Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
