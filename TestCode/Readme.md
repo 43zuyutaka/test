@@ -1,14 +1,15 @@
 # JDK6とJDK8のAES鍵相互運用
 
 ### ○前提
- * JDK8からkeytoolの仕様が変わっていて、キーストアのバイナリに互換性がない。
+ * JDK8からkeytoolの仕様が変わっていて、キーストアのバイナリに互換性がない。なのでファイルをコピーすることはできない。
  * JDK8はPKCS12という形式だが、JDK6はJCEKSになっている。
 　このため、JDK6ではJDK8のキーストアをJavaから利用できず、keytoolコマンドでJDK6のキーストアにインポートもできない。
  * 試した結果、JDK6で作った鍵を、JDK8のkeytoolでPKCS12形式にインポートすることはできた。
-　（JDK8のkeytoolでJDK6用のJCEKSファイルへインポートもできたが、鍵が微妙に変化して暗号化・復号化が失敗した）
+ * JDK8のkeytoolで作った鍵をJDK6用にJCEKS形式にインポートもできた。
  * JDK6はAES鍵長は128bit、JDK8も途中のバージョンまで標準128bit。
 
 ### ○JDK6とJDK8でのAES鍵の共有方法
+#### JDK6→JDK8
  1. JDK6のkeytoolでAES鍵を作り、キーストアに格納する
  1. JDK8のkeytoolでJDK6のキーストアから、JDK8のキーストアに鍵をインポートする
 
@@ -22,6 +23,24 @@
 ~~~
 > keytool -list -keystore myKeyStore.pkcs12 -storetype pkcs12 -storepass password
 > keytool -importkeystore -v -srckeystore legacyKeyStore.jceks -destkeystore myKeyStore.pkcs12 -srcstoretype jceks -deststoretype pkcs12 -srcstorepass password -deststorepass password -srcalias jdk6key -destalias jdk6key -srckeypass password -destkeypass password
+~~~
+
+### JDK8→JDK6
+ 逆をするだけ。
+* JDK8で鍵作成
+~~~
+> keytool -genseckey -storetype pkcs12 -keyalg AES -keysize 128 -keystore myKeyStore.pkcs12 -storepass password -alias jdk8key -keypass password
+> keytool -list -keystore myKeyStore.pkcs12 -storetype pkcs12 -storepass password
+~~~
+* JDK8でJDK6鍵にインポート
+~~~
+> keytool -importkeystore -v -srckeystore myKeyStore.pkcs12 -destkeystore legacyKeyStore.jceks -srcstoretype pkcs12 -deststoretype jceks -srcstorepass password -deststorepass password -srcalias jdk8key -destalias jdk8key -srckeypass password -destkeypass password
+keytool -list -keystore legacyKeyStore.jceks -storetype jceks -storepass password
+キーストアmyKeyStore.pkcs12をlegacyKeyStore.jceksにインポートしています...
+[legacyKeyStore.jceksを格納中]
+
+Warning:
+JCEKSキーストアは独自の形式を使用しています。"keytool -importkeystore -srckeystore legacyKeyStore.jceks -destkeystore legacyKeyStore.jceks -deststoretype pkcs12"を使用する業界標準の形式であるPKCS12に移行することをお薦めします。
 ~~~
 
 ### ○参考サイト
